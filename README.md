@@ -1,5 +1,5 @@
-# TennesseBlar.github.io
-My project showcase, ordered from newest to oldest.
+# Project Showcase
+Ordered from newest to oldest.
 
 General Discord Bot (2021 to 2022): 
 - [Link](https://replit.com/@Apocalyptica/Saber-Bot?v=1#main.py)
