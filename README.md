@@ -1,7 +1,7 @@
 # Project Showcase
 Ordered from newest to oldest.
 
-General Discord Bot (2021 to 2022): 
+1. General Discord Bot (2021 to 2022): 
     - [Link](https://replit.com/@Apocalyptica/Saber-Bot?v=1#main.py)
     - Written in Python using replit's environment.
     - Was made in a team of three people over the course of two summers.
