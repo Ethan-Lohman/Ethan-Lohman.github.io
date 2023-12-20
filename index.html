@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Name - Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>Your Name</h1>
+            <p>Computer Science Major</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#achievements">Achievements</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section id="projects">
+        <div class="container">
+            <h2>Projects</h2>
+            <div class="project" onclick="showDetails(1)">
+                <h3>Project 1</h3>
+                <p>Click to view details</p>
+                <div class="details" id="details1">
+                    <p>This is the detailed information about Project 1.</p>
+                </div>
+            </div>
+            <!-- Add more projects with similar structure -->
+        </div>
+    </section>
+
+    <section id="achievements">
+        <div class="container">
+            <h2>Achievements</h2>
+            <p>This section can include your non-CS achievements.</p>
+        </div>
+    </section>
+
+    <section id="education">
+        <div class="container">
+            <h2>Education</h2>
+            <div class="education-entry">
+                <h3>Computer Science Degree</h3>
+                <p>University of XYZ, Graduation Year</p>
+            </div>
+            <!-- Add more entries for other degrees or certifications -->
+        </div>
+    </section>
+
+    <section id="contact">
+        <div class="container">
+            <h2>Contact</h2>
+            <form id="contactForm" action="https://formspree.io/lohmane.contact@gmail.com" method="POST">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+    
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+    
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" rows="4" required></textarea>
+    
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="skills">
+        <div class="container">
+            <h2>Skills</h2>
+            <div class="skills-category">
+                <h3>Programming Languages</h3>
+                <ul>
+                    <li>Java</li>
+                    <li>Python</li>
+                    <li>JavaScript</li>
+                    <!-- Add more programming languages -->
+                </ul>
+            </div>
+    
+            <div class="skills-category">
+                <h3>Web Technologies</h3>
+                <ul>
+                    <li>HTML, CSS</li>
+                    <li>React, Vue.js</li>
+                    <li>Node.js</li>
+                    <!-- Add more web technologies -->
+                </ul>
+            </div>
+            <!-- Add more skills categories as needed -->
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Ethan Lohman | Contact: lohmane.contact@gmail.com</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
