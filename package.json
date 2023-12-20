@@ -1,0 +1,17 @@
+{
+  "name": "tennesseblar.github.io",
+  "version": "1.0.0",
+  "description": "Ordered from newest to oldest.",
+  "main": "script.js",
+  "scripts": {
+    "install": "npm install",
+    "start": "npm run serve",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "yarn": "^1.22.21"
+  }
+}

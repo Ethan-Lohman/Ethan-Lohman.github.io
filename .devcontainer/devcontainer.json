@@ -1,0 +1,14 @@
+{
+    "name": "super-duper xylophone",
+    "extensions": [],
+    "settings": {
+      "terminal.integrated.shell.linux": "/bin/bash",
+      "workbench.startupEditor": "newUntitledFile",
+      "files.autoSave": "afterDelay",
+      "files.autoSaveDelay": 1000
+    },
+    "postCreateCommand": "yarn install && yarn start",
+    "postStartCommand": "yarn start",
+    "forwardPorts": [80],
+    "remoteUser": "codespace"
+  }
