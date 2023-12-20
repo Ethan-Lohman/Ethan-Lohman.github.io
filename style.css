@@ -49,11 +49,11 @@ footer {
     padding: 2rem 0;
 }
 
-#contact .social-media-footer a {
+footer .social-media-footer a {
     color: #333; /* Change link color to a dark color */
 }
 
-#contact .social-media-footer a:hover {
+footer .social-media-footer a:hover {
     color: #ff8c00;
 }
 
