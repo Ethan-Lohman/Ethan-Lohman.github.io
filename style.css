@@ -47,21 +47,18 @@ footer {
     background-color: #333;
     color: #fff;
     padding: 2rem 0; /* Increased padding for a larger size */
-}
-
-#contact .social-media-footer {
     display: flex;
     justify-content: space-around;
 }
 
-#contact .social-media-footer a {
+footer a {
     text-decoration: none;
     color: #fff;
     font-size: 1.2rem; /* Increased font size for better visibility */
     transition: color 0.3s;
 }
 
-#contact .social-media-footer a:hover {
+footer a:hover {
     color: #ff8c00;
 }
 
