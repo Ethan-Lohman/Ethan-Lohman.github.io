@@ -5,13 +5,14 @@
   "main": "script.js",
   "scripts": {
     "install": "npm install",
-    "start": "npm run serve",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "http-server src -p 3000",
+    "build": "echo 'Build command placeholder'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "yarn": "^1.22.21"
+    "yarn": "^1.22.21",
+    "http-server": "^0.12.3"
   }
 }
