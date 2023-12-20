@@ -55,7 +55,7 @@ footer a {
     text-decoration: none;
     color: #fff;
     font-size: 1.2rem; /* Increased font size for better visibility */
-    transition: color 0.3s;
+    transition: color 0.3s; /* Test */
 }
 
 footer a:hover {
