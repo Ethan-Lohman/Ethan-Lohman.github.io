@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethan Lohman - Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-eLZV3pKdOmyLKn1s39Fl9NzwppHpYKlIrspHUZ9ZnORCLeZ/kWvDAMMum4eED1C+3I7Uln1IYII9CjM/4U7yDg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>Ethan Lohman</h1>
+                <p>Computer Science Major</p>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#achievements">Achievements</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section id="projects">
+        <div class="container">
+            <h2>Projects</h2>
+            <div class="project" onclick="showDetails(1)">
+                <h3>Secure Messaging App</h3>
+                <p>Developed an end-to-end encrypted messaging app for secure communication.</p>
+                <div class="details" id="details1">
+                    <p>This project involved implementing robust encryption algorithms and ensuring user privacy.</p>
+                </div>
+            </div>
+
+            <div class="project" onclick="showDetails(2)">
+                <h3>AI-powered Personal Assistant</h3>
+                <p>Created an artificial intelligence assistant capable of natural language understanding and task automation.</p>
+                <div class="details" id="details2">
+                    <p>The personal assistant used machine learning to adapt to user preferences and automate daily tasks.</p>
+                </div>
+            </div>
+            <!-- Add more projects with similar structure -->
+        </div>
+    </section>
+
+    <section id="achievements">
+        <div class="container">
+            <h2>Achievements</h2>
+            <div class="achievement">
+                <h3>Dean's List Recognition</h3>
+                <p>Achieved Dean's List status for outstanding academic performance in the Computer Science program.</p>
+            </div>
+
+            <div class="achievement">
+                <h3>Hackathonner</h3>
+                <p>Secured first place in the regional coding hackathon, demonstrating problem-solving skills and creativity.</p>
+            </div>
+            <!-- Add more achievements with similar structure -->
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Ethan Lohman | Contact: lohmane.contact@gmail.com</p>
+            <div class="social-media-footer">
+                <a href="https://linkedin.com/yourprofile" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-linkedin"></i>
+                    LinkedIn
+                </a>
+        
+                <a href="https://github.com/yourusername" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-github"></i>
+                    GitHub
+                </a>
+                <!-- Add more social media links as needed -->
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
