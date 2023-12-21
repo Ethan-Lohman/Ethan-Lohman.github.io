@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethan Lohman - Portfolio</title>
+    <link rel="icon" href="./images/websiteIcon.svg" type="image/x-icon">
+    <link rel="shortcut icon" href="./images/websiteIcon.svg" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
+    <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css'>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>Ethan Lohman</h1>
+                <p>Computer Science Major</p>
+                <div class="social-media-header">
+                    <a href="https://www.linkedin.com/in/ethan-lohman-0a6801227/" target="_blank" rel="noopener noreferrer">
+                        <i class="fa fa-linkedin-square"></i>
+                    </a>
+        
+                    <a href="https://github.com/TennesseBlar" target="_blank" rel="noopener noreferrer">
+                        <i class="fa fa-git-square"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#achievements">Achievements</a></li>
+                <li><a href="#otherWork">Other Work</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section id="projects">
+        <div class="container">
+            <h2>Projects</h2>
+            <div class="project" onclick="showDetails(1)">
+                <h3>Project Title</h3>
+                <p>Description of the project. Mention the goals, technologies used, and your role.</p>
+                <div class="details" id="details1">
+                    <p>Detailed information about the project. You can include challenges, solutions, and outcomes.</p>
+                    <ul>
+                        <li><strong>Duration:</strong> Start Date - End Date</li>
+                        <li><strong>Role:</strong> Your role in the project (e.g., Developer, Team Lead)</li>
+                        <li><strong>Technologies:</strong> List of technologies used (e.g., HTML, CSS, JavaScript)</li>
+                        <li><strong>Link:</strong> <a href="#" target="_blank" rel="noopener noreferrer">Project Link</a></li>
+                        <!-- Add more details as needed -->
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="project" onclick="showDetails(2)">
+                <h3>Project Title 2</h3>
+                <p>Description of the project. Mention the goals, technologies used, and your role.</p>
+                <div class="details" id="details2">
+                    <p>Detailed information about the project. You can include challenges, solutions, and outcomes.</p>
+                    <ul>
+                        <li><strong>Duration:</strong> Start Date - End Date</li>
+                        <li><strong>Role:</strong> Your role in the project (e.g., Developer, Team Lead)</li>
+                        <li><strong>Technologies:</strong> List of technologies used (e.g., HTML, CSS, JavaScript)</li>
+                        <li><strong>Link:</strong> <a href="#" target="_blank" rel="noopener noreferrer">Project Link</a></li>
+                        <!-- Add more details as needed -->
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section id="achievements">
+        <div class="container">
+            <h2>Achievements</h2>
+            <div class="achievements-grid">
+                <div class="achievement" onclick="showDetails('deansList')">
+                    <h3>Dean's List Recognition</h3>
+                    <p>Achieved Dean's List status for outstanding academic performance in the Computer Science program.</p>
+                    <div class="details" id="details-deansList">
+                        <p>This achievement highlights exceptional academic performance, placing in the top percentage of students.</p>
+                    </div>
+                </div>
+    
+                <div class="achievement" onclick="showDetails('hackathonWinner')">
+                    <h3>Hackathon Winner</h3>
+                    <p>Secured first place in the regional coding hackathon, demonstrating problem-solving skills and creativity.</p>
+                    <div class="details" id="details-hackathonWinner">
+                        <p>This award reflects the ability to tackle complex coding challenges and deliver innovative solutions.</p>
+                    </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="otherWork">
+        <div class="container">
+            <h2>Other Work</h2>
+            <div class="achievements-grid">
+                <!-- Writing -->
+                <div class="achievement" onclick="showDetails('writing')">
+                    <h3>Writing</h3>
+                    <p>Include information about your writing activities, articles, blogs, or any other written content.</p>
+                    <div class="details" id="details-writing">
+                        <!-- Add more details about your writing activities if needed -->
+                    </div>
+                </div>
+    
+                <!-- Cybersecurity -->
+                <div class="achievement" onclick="showDetails('cybersecurity')">
+                    <h3>Cybersecurity</h3>
+                    <p>Provide details about your cybersecurity expertise, projects, or any relevant experience in this field.</p>
+                    <div class="details" id="details-cybersecurity">
+                        <!-- Add more details about your cybersecurity activities if needed -->
+                    </div>
+                </div>
+    
+                <!-- Add more sections as needed -->
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Ethan Lohman | Contact: lohmane.contact@gmail.com</p>
+            <div class="social-media-footer">
+                <a href="https://www.linkedin.com/in/ethan-lohman-0a6801227/" target="_blank" rel="noopener noreferrer">
+                    LinkedIn
+                </a>
+        
+                <a href="https://github.com/TennesseBlar" target="_blank" rel="noopener noreferrer">
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
