@@ -1,11 +1,27 @@
-# Project Showcase
-Ordered from newest to oldest.
+# My Portfolio
 
-1. General Discord Bot (2021 to 2022): 
-    - [Link](https://replit.com/@Apocalyptica/Saber-Bot?v=1#main.py)
-    - Written in Python using replit's environment.
-    - Was made in a team of three people over the course of two summers.
-    - Some highlighted features:
-        -  A datastore for all users of their levels and coins.
-        -  15 commands made for all normal commands, with 2 being made for admin only.
-        -  Programmed with OOP in mind during the second summer.
+Welcome to my professional portfolio! This repository houses the source code for my personal website, where I showcase my skills, projects, and achievements in the field of computer science.
+
+## Table of Contents
+- [About Me](#about-me)
+- [Projects](#projects)
+- [Achievements](#achievements)
+- [Other Contributions](#other-contributions)
+- [Contact](#contact)
+
+## About Me
+In this section, you'll find information about my background, interests, and professional aspirations.
+
+## Projects
+Explore the various projects I have worked on. Each project is accompanied by a brief description, technologies used, and a link to the project itself.
+
+## Achievements
+Discover my academic and professional achievements, highlighting notable recognitions and accomplishments.
+
+## Other Contributions
+Explore my contributions beyond the realm of technology. This section includes my involvement in writing, acting, or any other non-technical pursuits.
+
+## Contact
+Connect with me through the provided links to my LinkedIn, GitHub, and Email. You can also access my resume for a detailed overview of my professional journey.
+
+Feel free to explore and reach out if you have any questions or opportunities!

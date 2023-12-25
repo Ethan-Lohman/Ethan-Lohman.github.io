@@ -77,6 +77,17 @@ footer .social-media-footer a:hover {
     transition: none;
 }
 
+.project a {
+    text-decoration: none;
+    color: #007bff;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.project a:hover {
+    color: #0056b3;
+}
+
 /* Achievements Styles */
 #achievements {
     background-color: #f4f4f4;
@@ -99,6 +110,17 @@ footer .social-media-footer a:hover {
     transform: scale(1.02);
 }
 
+.achievement a {
+    text-decoration: none;
+    color: #007bff;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.achievement a:hover {
+    color: #0056b3;
+}
+
 /* Header Social Media Styles */
 .social-media-header {
     display: flex;
@@ -116,4 +138,22 @@ footer .social-media-footer a:hover {
 
 .social-media-header a:hover {
     color: #ff8c00;
+}
+
+/* About Section Styles */
+#about {
+    background-color: #fff;
+    padding: 3rem 0;
+}
+
+.about-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.about-image {
+    max-width: 300px;
+    border-radius: 50%;
+    margin-right: 20px;
 }
