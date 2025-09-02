@@ -95,15 +95,16 @@ footer .social-media-footer a:hover {
 }
 
 .achievements-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 30px;
+    padding: 2rem 1rem;
 }
 
 .achievement {
-    border: 1px solid #ddd;
-    padding: 1.5rem;
-    transition: transform 0.3s;
+    width: 280px;
+    text-align: center;
 }
 
 .achievement:hover {
