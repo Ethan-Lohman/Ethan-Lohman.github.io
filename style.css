@@ -96,7 +96,6 @@ footer .social-media-footer a:hover {
 
 .achievements-grid {
     display: flex;
-    justify-content: center;
     flex-wrap: wrap;
     gap: 30px;
     padding: 2rem 1rem;
@@ -105,6 +104,8 @@ footer .social-media-footer a:hover {
 .achievement {
     width: 280px;
     text-align: center;
+    border: 1px solid #ddd;
+    margin-bottom: 2rem;
 }
 
 .achievement:hover {
