@@ -180,14 +180,13 @@ footer .social-media-footer a:hover {
 .email-display {
     margin-top: 15px;
     text-align: center;
-    font-size: 1.1rem;
+    font-size: 0.5rem;
     color: #fff;
 }
 
 .email-display a {
     color: #fff;
     text-decoration: none;
-    font-weight: bold;
     transition: color 0.3s;
 }
 
