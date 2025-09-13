@@ -25,3 +25,5 @@ Explore my contributions beyond the realm of technology. This section includes m
 Connect with me through the provided links to my LinkedIn, GitHub, and Email. You can also access my resume for a detailed overview of my professional journey.
 
 Feel free to explore and reach out if you have any questions or opportunities!
+lsof -i :3000
+kill -9 
