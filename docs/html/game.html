@@ -412,19 +412,38 @@
         }
         
         function createPlayer() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = '#00ff00';
-            ctx.fillRect(0, 0, 64, 64);
-            ctx.fillStyle = '#00aa00';
-            ctx.fillRect(10, 10, 44, 44);
-            ctx.fillStyle = '#00ff00';
-            ctx.fillRect(20, 20, 24, 24);
-            
-            const texture = new THREE.CanvasTexture(canvas);
+            // Load custom texture from URL
+            // You can replace this URL with your own texture image
+            const textureLoader = new THREE.TextureLoader();
+            const texture = textureLoader.load(
+                'https://i.imgur.com/8KqVWg5.png', // Placeholder spaceship texture
+                // On load success
+                function(texture) {
+                    console.log('Player texture loaded successfully');
+                },
+                // On load progress
+                undefined,
+                // On load error - fallback to canvas texture
+                function(error) {
+                    console.log('Texture load failed, using canvas fallback');
+                    // Create fallback canvas texture
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fillRect(0, 0, 64, 64);
+                    ctx.fillStyle = '#00aa00';
+                    ctx.fillRect(10, 10, 44, 44);
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fillRect(20, 20, 24, 24);
+                    
+                    const fallbackTexture = new THREE.CanvasTexture(canvas);
+                    playerMesh.material.map = fallbackTexture;
+                    playerMesh.material.needsUpdate = true;
+                }
+            );
             
             const geometry = new THREE.ConeGeometry(1, 3, 4);
             const material = new THREE.MeshPhongMaterial({ 
