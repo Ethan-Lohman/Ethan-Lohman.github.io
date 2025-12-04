@@ -130,7 +130,7 @@
         <p>Multiplayer Battle Royale</p>
         <p id="lobbyStatus">Connecting to server...</p>
         <p id="countdown" class="blink"></p>
-        <p style="font-size: 14px; margin-top: 30px;">Controls: WASD - Move | SPACE - Shoot</p>
+        <p style="font-size: 14px; margin-top: 30px;">Controls: WASD - Move | SPACE - Tag nearby players</p>
         <div id="lobbyPlayers" style="margin-top: 20px;"></div>
     </div>
     
@@ -172,19 +172,22 @@
         let scene, camera, renderer;
         let player, playerMesh, directionIndicator;
         let enemies = {};
-        let mines = {}; // All mines in the game
         let otherPlayers = {};
         let stars = [];
         let health = 100;
         let gameState = 'lobby';
         let keys = {};
-        let lastShot = 0;
+        let lastTag = 0;
         let playerId = null;
         let isAlive = true;
         let shrinkZone = null;
         let currentBoundary = 50;
         
-        // Anti-cheat - prevent console manipulation
+        const TAG_RANGE = 3; // How close you need to be to tag
+        const TAG_COOLDOWN = 1000; // 1 second between tags
+        const TAG_DAMAGE = 20; // Damage per tag
+        
+        // Anti-cheat
         Object.defineProperty(window, 'isAlive', {
             set: function(value) {
                 console.warn('Nice try! Anti-cheat detected.');
@@ -343,9 +346,23 @@
                 startRound(data);
             });
             
-            socket.on('mine-placed', (data) => {
-                console.log('Mine placed:', data);
-                createMine(data);
+            socket.on('player-tagged', (data) => {
+                console.log('Tag event:', data);
+                
+                // Show visual effect for tag
+                if (data.targetId === playerId) {
+                    // Flash red when you get tagged
+                    const flash = document.getElementById('damageFlash');
+                    flash.style.opacity = '1';
+                    setTimeout(() => {
+                        flash.style.opacity = '0';
+                    }, 300);
+                }
+                
+                // Create visual effect at tag location
+                if (data.taggerId === playerId || data.targetId === playerId) {
+                    createTagEffect(data.x, data.z);
+                }
             });
             
             socket.on('zone-update', (data) => {
@@ -536,6 +553,7 @@
             scene.add(mesh);
             
             otherPlayers[data.id] = {
+                id: data.id, // Store the ID
                 mesh: mesh,
                 alive: data.alive !== false
             };
@@ -556,34 +574,37 @@
             }
         }
         
-        function createMine(data) {
-            console.log('Creating mine visual at', data.x, data.z);
-            
-            // Create a simple sphere
-            const geometry = new THREE.SphereGeometry(0.8, 16, 16);
-            const material = new THREE.MeshPhongMaterial({ 
-                color: data.ownerId === playerId ? 0xff0000 : 0xff6600,
-                emissive: data.ownerId === playerId ? 0xff0000 : 0xff6600,
-                emissiveIntensity: 0.6
+        function createTagEffect(x, z) {
+            // Create a quick expanding ring effect
+            const geometry = new THREE.RingGeometry(0.5, 1, 32);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0xff0000,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
             });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(data.x, 0.8, data.z); // Sits on ground
+            const ring = new THREE.Mesh(geometry, material);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.set(x, 0.5, z);
             
-            // Add a glow light
-            const light = new THREE.PointLight(data.ownerId === playerId ? 0xff0000 : 0xff6600, 2, 5);
-            mesh.add(light);
+            scene.add(ring);
             
-            scene.add(mesh);
-            
-            mines[data.id] = {
-                mesh: mesh,
-                x: data.x,
-                z: data.z,
-                ownerId: data.ownerId,
-                id: data.id
+            // Animate and remove
+            let scale = 1;
+            const animate = () => {
+                scale += 0.15;
+                material.opacity -= 0.05;
+                ring.scale.set(scale, scale, scale);
+                
+                if (material.opacity <= 0) {
+                    scene.remove(ring);
+                    geometry.dispose();
+                    material.dispose();
+                } else {
+                    requestAnimationFrame(animate);
+                }
             };
-            
-            console.log('Mine created successfully. Total mines:', Object.keys(mines).length);
+            animate();
         }
         
         function createEnemy(data) {
@@ -715,9 +736,7 @@
             
             // Clear all game objects
             Object.values(enemies).forEach(e => scene.remove(e.mesh));
-            Object.values(mines).forEach(m => scene.remove(m.mesh));
             enemies = {};
-            mines = {};
         }
         
         function updateLobbyUI() {
@@ -748,33 +767,53 @@
             updatePlayerList();
         }
         
-        function onKeyDown(e) {
-            keys[e.key.toLowerCase()] = true;
-            
-            if (e.key === ' ' && gameState === 'playing' && isAlive) {
-                shoot();
-                e.preventDefault();
-            }
-        }
-        
         function onKeyUp(e) {
             keys[e.key.toLowerCase()] = false;
         }
         
-        function shoot() {
+        function tag() {
             const now = Date.now();
-            if (now - lastShot < SHOOT_COOLDOWN) return;
+            if (now - lastTag < TAG_COOLDOWN) return;
             if (!isAlive || gameState !== 'playing') return;
             
-            lastShot = now;
+            lastTag = now;
             
-            console.log('Placing mine at player position:', player.x, player.z);
+            console.log('Attempting to tag nearby players');
             
-            // Tell server to place mine at current position
-            socket.emit('place-mine', {
-                x: player.x,
-                z: player.z
+            // Check if any player is in range
+            let taggedSomeone = false;
+            Object.values(otherPlayers).forEach(other => {
+                if (!other.alive || other.alive === false) return;
+                
+                const dx = other.mesh.position.x - player.x;
+                const dz = other.mesh.position.z - player.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                
+                if (dist < TAG_RANGE) {
+                    console.log('Player in range! Sending tag');
+                    taggedSomeone = true;
+                    
+                    // Send tag to server
+                    socket.emit('tag-player', {
+                        targetId: other.id,
+                        x: other.mesh.position.x,
+                        z: other.mesh.position.z
+                    });
+                }
             });
+            
+            if (!taggedSomeone) {
+                console.log('No one in range');
+            }
+        }
+        
+        function onKeyDown(e) {
+            keys[e.key.toLowerCase()] = true;
+            
+            if (e.key === ' ' && gameState === 'playing' && isAlive) {
+                tag();
+                e.preventDefault();
+            }
         }
         
         function checkCollisions() {
@@ -793,25 +832,7 @@
                 });
             }
             
-            // Check collision with mines
-            Object.values(mines).forEach(mine => {
-                const dx = mine.x - player.x;
-                const dz = mine.z - player.z;
-                const dist = Math.sqrt(dx * dx + dz * dz);
-                
-                // If touching mine, take damage
-                if (dist < 1.5 && now - lastDamageTime > 500) {
-                    lastDamageTime = now;
-                    console.log('Player touched mine! Taking damage');
-                    socket.emit('player-hit', {
-                        targetId: playerId,
-                        shooterId: mine.ownerId,
-                        damage: 15
-                    });
-                }
-            });
-            
-            // Check collision with other players
+            // Check collision with other players - push away
             Object.values(otherPlayers).forEach(other => {
                 if (!other.alive || other.alive === false) return;
                 
@@ -821,7 +842,7 @@
                 
                 // Player collision - push away from each other
                 if (dist < 2) {
-                    const pushDistance = 0.2;
+                    const pushDistance = 0.3;
                     const angle = Math.atan2(dz, dx);
                     player.x -= Math.cos(angle) * pushDistance;
                     player.z -= Math.sin(angle) * pushDistance;
