@@ -147,7 +147,6 @@
     <div id="damageFlash"></div>
     
     <div id="ui">
-        <div>Mines: <span id="mines">5</span> / 5</div>
         <div>Health: <span id="health">100</span></div>
         <div>Players Alive: <span id="alive">0</span></div>
         <div>Zone: <span id="zone">50</span>m</div>
@@ -174,7 +173,6 @@
         let player, playerMesh, directionIndicator;
         let bullets = {};
         let enemies = {};
-        let myMines = []; // Track my own mines (just for visual)
         let allMines = {}; // Track all players' mines
         let otherPlayers = {};
         let stars = [];
@@ -576,17 +574,15 @@
         }
         
         function createMineVisual(data) {
-            // Simple flat circle on the ground - no calculation, instant
-            const geometry = new THREE.CircleGeometry(1, 16);
-            const material = new THREE.MeshBasicMaterial({ 
+            // Simple sphere that sits on the ground
+            const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const material = new THREE.MeshPhongMaterial({ 
                 color: data.ownerId === playerId ? 0xff0000 : 0xff6600,
-                transparent: true,
-                opacity: 0.7,
-                side: THREE.DoubleSide
+                emissive: data.ownerId === playerId ? 0xff0000 : 0xff6600,
+                emissiveIntensity: 0.5
             });
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.rotation.x = -Math.PI / 2; // Lay flat on ground
-            mesh.position.set(data.x, 0.1, data.z); // Slightly above ground
+            mesh.position.set(data.x, 0.5, data.z); // Sits on ground
             
             scene.add(mesh);
             allMines[data.id] = {
@@ -655,7 +651,6 @@
             isAlive = true;
             health = 100;
             currentBoundary = BOUNDARY;
-            myMines = [];
             updateZoneVisual();
             
             document.getElementById('lobbyScreen').classList.add('hidden');
@@ -725,7 +720,6 @@
             gameState = 'lobby';
             isAlive = true;
             currentBoundary = BOUNDARY;
-            myMines = [];
             updateZoneVisual();
             
             document.getElementById('roundEndScreen').classList.add('hidden');
@@ -764,7 +758,6 @@
         }
         
         function updateUI() {
-            document.getElementById('mines').textContent = MAX_MINES_PER_PLAYER - myMines.length;
             document.getElementById('health').textContent = Math.max(0, health);
             document.getElementById('zone').textContent = Math.round(currentBoundary);
             updatePlayerList();
@@ -790,21 +783,11 @@
             
             lastShot = now;
             
-            // Place mine at current position - instant, no calculation
-            myMines.push({ x: player.x, z: player.z });
-            
-            // Remove oldest mine if more than 5
-            if (myMines.length > MAX_MINES_PER_PLAYER) {
-                myMines.shift(); // Remove first (oldest) mine
-            }
-            
-            // Tell server to place mine - server handles the visuals for all
+            // Place mine at current position - unlimited, server handles the 5 max visible
             socket.emit('place-mine', {
                 x: player.x,
                 z: player.z
             });
-            
-            updateUI();
         }
         
         function checkCollisions() {
@@ -822,6 +805,23 @@
                     damage: 5
                 });
             }
+            
+            // Check mine collisions - continuous damage while touching
+            Object.values(allMines).forEach(mine => {
+                const dx = mine.x - player.x;
+                const dz = mine.z - player.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                
+                // If touching mine (within 1 unit), take damage
+                if (dist < 1.5 && now - lastDamageTime > 500) {
+                    lastDamageTime = now;
+                    socket.emit('player-hit', {
+                        targetId: playerId,
+                        shooterId: mine.ownerId,
+                        damage: 10
+                    });
+                }
+            });
             
             // Check enemy collisions with player (with longer cooldown)
             Object.values(enemies).forEach(enemy => {
