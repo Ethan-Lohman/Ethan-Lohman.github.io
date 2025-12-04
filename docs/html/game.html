@@ -82,6 +82,18 @@
             align-items: center;
             z-index: 50;
         }
+        #damageFlash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.5);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 40;
+        }
         #deathOverlay h2 {
             color: #f00;
             font-size: 60px;
@@ -99,13 +111,24 @@
             margin: 5px 0;
             min-width: 300px;
         }
+        #connectionStatus {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #ff0;
+            font-size: 14px;
+            text-shadow: 0 0 10px #ff0;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="lobbyScreen">
         <h1>🚀 SPACE BATTLE 3D 🚀</h1>
         <p>Multiplayer Battle Royale</p>
-        <p id="lobbyStatus">Waiting for players...</p>
+        <p id="lobbyStatus">Connecting to server...</p>
         <p id="countdown" class="blink"></p>
         <p style="font-size: 14px; margin-top: 30px;">Controls: WASD - Move | SPACE - Shoot</p>
         <div id="lobbyPlayers" style="margin-top: 20px;"></div>
@@ -121,6 +144,8 @@
         <h2>YOU WERE ELIMINATED!</h2>
     </div>
     
+    <div id="damageFlash"></div>
+    
     <div id="ui">
         <div>Score: <span id="score">0</span></div>
         <div>Health: <span id="health">100</span></div>
@@ -132,10 +157,15 @@
         <div id="players"></div>
     </div>
 
+    <div id="connectionStatus">
+        <span id="statusText">Connecting...</span>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
-        // CHANGE THIS TO YOUR SERVER URL
+        // ⚠️ IMPORTANT: Update this URL after deploying your server to Render.com
+        // It will look like: https://space-battle-server.onrender.com
         const SERVER_URL = 'https://space-battle-server.onrender.com';
         
         // Game state
@@ -156,12 +186,27 @@
         // Networking
         let socket;
         
+        // Damage cooldown tracking to prevent rapid damage
+        let lastDamageTime = 0;
+        let lastEnemyDamageTime = 0;
+        const DAMAGE_COOLDOWN = 500; // Can only take damage every 500ms
+        const ENEMY_DAMAGE_COOLDOWN = 1000; // Enemy collision damage cooldown
+        
         // Game boundaries
         const BOUNDARY = 50;
-        const SHOOT_COOLDOWN = 300;
+        const SHOOT_COOLDOWN = 500; // Increased from 300ms to 500ms
 
         // Initialize
         function init() {
+            // Check if server URL is configured
+            if (SERVER_URL.includes('YOUR-SERVER-NAME')) {
+                document.getElementById('lobbyStatus').innerHTML = 
+                    '⚠️ Server not configured!<br><span style="font-size: 14px;">Update SERVER_URL in index.html</span>';
+                document.getElementById('lobbyStatus').style.color = '#f00';
+                updateConnectionStatus('Not configured', false);
+                return;
+            }
+
             // Setup scene
             scene = new THREE.Scene();
             scene.fog = new THREE.Fog(0x000000, 50, 150);
@@ -208,13 +253,39 @@
             animate();
         }
         
+        function updateConnectionStatus(text, connected) {
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('connectionStatus').style.color = connected ? '#0f0' : '#f00';
+        }
+        
         function setupNetworking() {
-            socket = io(SERVER_URL);
+            updateConnectionStatus('Connecting...', false);
+            
+            socket = io(SERVER_URL, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5
+            });
             
             socket.on('connect', () => {
                 console.log('Connected to server');
                 playerId = socket.id;
+                updateConnectionStatus('Connected', true);
+                document.getElementById('lobbyStatus').textContent = 'Waiting for players...';
                 socket.emit('player-join', { x: 0, z: 0 });
+            });
+            
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                updateConnectionStatus('Connection failed - Server may be sleeping', false);
+                document.getElementById('lobbyStatus').innerHTML = 
+                    'Cannot connect to server<br><span style="font-size: 14px;">Server may be starting up (wait 30s) or URL is incorrect</span>';
+            });
+            
+            socket.on('disconnect', () => {
+                updateConnectionStatus('Disconnected', false);
+                document.getElementById('lobbyStatus').textContent = 'Disconnected from server';
             });
             
             socket.on('game-state', (data) => {
@@ -276,14 +347,17 @@
                 }
             });
             
-            socket.on('enemy-damaged', (data) => {
-                // Visual feedback only
-            });
-            
             socket.on('player-damaged', (data) => {
                 if (data.playerId === playerId) {
                     health = data.health;
                     updateUI();
+                    
+                    // Flash red when taking damage
+                    const flash = document.getElementById('damageFlash');
+                    flash.style.opacity = '1';
+                    setTimeout(() => {
+                        flash.style.opacity = '0';
+                    }, 200);
                 }
             });
             
@@ -309,7 +383,6 @@
             });
             
             socket.on('game-update', (data) => {
-                // Update enemies
                 data.enemies.forEach(enemyData => {
                     if (enemies[enemyData.id]) {
                         enemies[enemyData.id].mesh.position.x = enemyData.x;
@@ -502,7 +575,6 @@
             document.getElementById('lobbyScreen').classList.add('hidden');
             document.getElementById('deathOverlay').classList.add('hidden');
             
-            // Update player positions
             const myData = data.players.find(p => p.id === playerId);
             if (myData) {
                 player.x = myData.x;
@@ -537,7 +609,6 @@
                 document.getElementById('winnerText').textContent = 'NO WINNER';
             }
             
-            // Show scoreboard
             let html = '';
             data.players.sort((a, b) => b.score - a.score).forEach((p, i) => {
                 const isYou = p.id === playerId;
@@ -559,7 +630,6 @@
             document.getElementById('countdown').textContent = '';
             document.getElementById('lobbyStatus').textContent = 'Waiting for players...';
             
-            // Clear game objects
             Object.values(bullets).forEach(b => scene.remove(b.mesh));
             Object.values(enemies).forEach(e => scene.remove(e.mesh));
             bullets = {};
@@ -584,7 +654,6 @@
             
             playerListDiv.innerHTML = html;
             
-            // Update alive count
             const aliveCount = Object.values(otherPlayers).filter(p => p.alive !== false).length + (isAlive ? 1 : 0);
             document.getElementById('alive').textContent = aliveCount;
         }
@@ -630,15 +699,18 @@
         function checkCollisions() {
             if (!isAlive || gameState !== 'playing') return;
             
-            // Check bullet collisions with players
+            const now = Date.now();
+            
+            // Check bullet collisions with players (with cooldown)
             Object.values(bullets).forEach(bullet => {
-                // Check collision with local player
                 if (bullet.data.ownerId !== playerId) {
                     const dx = bullet.mesh.position.x - player.x;
                     const dz = bullet.mesh.position.z - player.z;
                     const dist = Math.sqrt(dx * dx + dz * dz);
                     
-                    if (dist < 1.5) {
+                    // Only take damage if cooldown has passed
+                    if (dist < 1.5 && now - lastDamageTime > DAMAGE_COOLDOWN) {
+                        lastDamageTime = now;
                         socket.emit('player-hit', {
                             targetId: playerId,
                             shooterId: bullet.data.ownerId,
@@ -647,48 +719,54 @@
                     }
                 }
                 
-                // Check collision with other players
-                Object.keys(otherPlayers).forEach(otherId => {
-                    if (bullet.data.ownerId !== otherId && otherPlayers[otherId].alive !== false) {
-                        const other = otherPlayers[otherId].mesh;
-                        const dx = bullet.mesh.position.x - other.position.x;
-                        const dz = bullet.mesh.position.z - other.position.z;
+                // Check other players (less frequent to reduce lag)
+                if (Math.random() < 0.3) { // Only check 30% of frames
+                    Object.keys(otherPlayers).forEach(otherId => {
+                        if (bullet.data.ownerId !== otherId && otherPlayers[otherId].alive !== false) {
+                            const other = otherPlayers[otherId].mesh;
+                            const dx = bullet.mesh.position.x - other.position.x;
+                            const dz = bullet.mesh.position.z - other.position.z;
+                            const dist = Math.sqrt(dx * dx + dz * dz);
+                            
+                            if (dist < 1.5) {
+                                socket.emit('player-hit', {
+                                    targetId: otherId,
+                                    shooterId: bullet.data.ownerId,
+                                    damage: 20
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                // Check enemies (less frequent to reduce lag)
+                if (Math.random() < 0.3) { // Only check 30% of frames
+                    Object.keys(enemies).forEach(enemyId => {
+                        const enemy = enemies[enemyId].mesh;
+                        const dx = bullet.mesh.position.x - enemy.position.x;
+                        const dz = bullet.mesh.position.z - enemy.position.z;
                         const dist = Math.sqrt(dx * dx + dz * dz);
                         
                         if (dist < 1.5) {
-                            socket.emit('player-hit', {
-                                targetId: otherId,
+                            socket.emit('enemy-hit', {
+                                enemyId: enemyId,
                                 shooterId: bullet.data.ownerId,
-                                damage: 20
+                                damage: 10
                             });
                         }
-                    }
-                });
-                
-                // Check collision with enemies
-                Object.keys(enemies).forEach(enemyId => {
-                    const enemy = enemies[enemyId].mesh;
-                    const dx = bullet.mesh.position.x - enemy.position.x;
-                    const dz = bullet.mesh.position.z - enemy.position.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    
-                    if (dist < 1.5) {
-                        socket.emit('enemy-hit', {
-                            enemyId: enemyId,
-                            shooterId: bullet.data.ownerId,
-                            damage: 10
-                        });
-                    }
-                });
+                    });
+                }
             });
             
-            // Check enemy collisions with players
+            // Check enemy collisions with player (with longer cooldown)
             Object.values(enemies).forEach(enemy => {
                 const dx = enemy.mesh.position.x - player.x;
                 const dz = enemy.mesh.position.z - player.z;
                 const dist = Math.sqrt(dx * dx + dz * dz);
                 
-                if (dist < 2) {
+                // Only take damage if cooldown has passed
+                if (dist < 2 && now - lastEnemyDamageTime > ENEMY_DAMAGE_COOLDOWN) {
+                    lastEnemyDamageTime = now;
                     socket.emit('player-hit', {
                         targetId: playerId,
                         shooterId: 'enemy',
@@ -700,7 +778,6 @@
         
         function update(delta) {
             if (gameState === 'playing' && isAlive) {
-                // Player movement
                 const acceleration = 0.02;
                 const friction = 0.95;
                 const rotationSpeed = 0.05;
@@ -723,7 +800,6 @@
                 player.x += player.vx;
                 player.z += player.vz;
                 
-                // Boundaries
                 player.x = Math.max(-BOUNDARY, Math.min(BOUNDARY, player.x));
                 player.z = Math.max(-BOUNDARY, Math.min(BOUNDARY, player.z));
                 
@@ -731,7 +807,6 @@
                 playerMesh.position.z = player.z;
                 playerMesh.rotation.y = player.rotation;
                 
-                // Update direction indicator
                 const indicatorDistance = 4;
                 directionIndicator.position.x = player.x + Math.sin(player.rotation) * indicatorDistance;
                 directionIndicator.position.z = player.z + Math.cos(player.rotation) * indicatorDistance;
@@ -741,8 +816,8 @@
                 const pulseIntensity = Math.min(speed * 20, 1);
                 directionIndicator.material.opacity = 0.3 + pulseIntensity * 0.5;
                 
-                // Broadcast position
-                if (Math.random() < 0.1) {
+                // Reduced network update frequency to decrease lag
+                if (Math.random() < 0.05) {
                     socket.emit('player-update', {
                         x: player.x,
                         z: player.z,
@@ -750,7 +825,6 @@
                     });
                 }
                 
-                // Camera follow
                 camera.position.x = player.x;
                 camera.position.z = player.z + 20;
                 camera.lookAt(player.x, 0, player.z);
@@ -758,7 +832,6 @@
                 checkCollisions();
             }
             
-            // Rotate enemies
             Object.values(enemies).forEach(enemy => {
                 enemy.mesh.rotation.x += 0.05;
                 enemy.mesh.rotation.y += 0.03;
