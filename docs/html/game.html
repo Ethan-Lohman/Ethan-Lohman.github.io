@@ -553,17 +553,32 @@
             scene.add(mesh);
             
             otherPlayers[data.id] = {
-                id: data.id, // Store the ID
+                id: data.id,
                 mesh: mesh,
-                alive: data.alive !== false
+                alive: data.alive !== false,
+                // Smooth interpolation values
+                currentX: data.x,
+                currentZ: data.z,
+                currentRotation: 0,
+                targetX: data.x,
+                targetZ: data.z,
+                targetRotation: 0
             };
         }
         
         function updateOtherPlayer(data) {
             if (otherPlayers[data.id]) {
-                otherPlayers[data.id].mesh.position.x = data.x;
-                otherPlayers[data.id].mesh.position.z = data.z;
-                otherPlayers[data.id].mesh.rotation.y = data.rotation || 0;
+                // Store target position for smooth interpolation
+                otherPlayers[data.id].targetX = data.x;
+                otherPlayers[data.id].targetZ = data.z;
+                otherPlayers[data.id].targetRotation = data.rotation || 0;
+                
+                // Initialize current values if first update
+                if (otherPlayers[data.id].currentX === undefined) {
+                    otherPlayers[data.id].currentX = data.x;
+                    otherPlayers[data.id].currentZ = data.z;
+                    otherPlayers[data.id].currentRotation = data.rotation || 0;
+                }
             }
         }
         
@@ -925,6 +940,23 @@
                 
                 checkCollisions();
             }
+            
+            // Smooth interpolation for other players
+            Object.values(otherPlayers).forEach(other => {
+                if (other.targetX !== undefined && other.currentX !== undefined) {
+                    // Lerp (linear interpolation) for smooth movement
+                    const lerpFactor = 0.3; // Higher = faster catch-up (0-1)
+                    
+                    other.currentX += (other.targetX - other.currentX) * lerpFactor;
+                    other.currentZ += (other.targetZ - other.currentZ) * lerpFactor;
+                    other.currentRotation += (other.targetRotation - other.currentRotation) * lerpFactor;
+                    
+                    // Update mesh position
+                    other.mesh.position.x = other.currentX;
+                    other.mesh.position.z = other.currentZ;
+                    other.mesh.rotation.y = other.currentRotation;
+                }
+            });
             
             Object.values(enemies).forEach(enemy => {
                 enemy.mesh.rotation.x += 0.05;
