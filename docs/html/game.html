@@ -130,7 +130,7 @@
         <p>Multiplayer Battle Royale</p>
         <p id="lobbyStatus">Connecting to server...</p>
         <p id="countdown" class="blink"></p>
-        <p style="font-size: 14px; margin-top: 30px;">Controls: WASD - Move | SPACE - Shoot | M - Place Mine</p>
+        <p style="font-size: 14px; margin-top: 30px;">Controls: WASD - Move | SPACE - Shoot</p>
         <div id="lobbyPlayers" style="margin-top: 20px;"></div>
     </div>
     
@@ -147,7 +147,6 @@
     <div id="damageFlash"></div>
     
     <div id="ui">
-        <div>Mines: <span id="mines">3</span> / 3</div>
         <div>Health: <span id="health">100</span></div>
         <div>Players Alive: <span id="alive">0</span></div>
         <div>Zone: <span id="zone">50</span>m</div>
@@ -174,16 +173,12 @@
         let player, playerMesh, directionIndicator;
         let bullets = {};
         let enemies = {};
-        let mines = {};
         let otherPlayers = {};
         let stars = [];
-        let score = 0;
         let health = 100;
         let gameState = 'lobby';
         let keys = {};
         let lastShot = 0;
-        let lastMine = 0;
-        let minesPlaced = 0;
         let playerId = null;
         let isAlive = true;
         let shrinkZone = null;
@@ -201,8 +196,6 @@
         // Game boundaries
         const BOUNDARY = 50;
         const SHOOT_COOLDOWN = 800; // Longer cooldown for shooting
-        const MINE_COOLDOWN = 3000; // 3 second cooldown for placing mines
-        const MAX_MINES = 3; // Maximum mines per player
 
         // Initialize
         function init() {
@@ -341,14 +334,6 @@
             
             socket.on('bullet-created', (data) => {
                 createBullet(data);
-            });
-            
-            socket.on('mine-placed', (data) => {
-                createMine(data);
-            });
-            
-            socket.on('mine-exploded', (data) => {
-                destroyMine(data.id);
             });
             
             socket.on('zone-update', (data) => {
@@ -559,36 +544,6 @@
             };
         }
         
-        function createMine(data) {
-            // Mine is a red octahedron
-            const geometry = new THREE.OctahedronGeometry(0.5);
-            const material = new THREE.MeshPhongMaterial({ 
-                color: 0xff0000,
-                emissive: 0xff0000,
-                emissiveIntensity: 0.5
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(data.x, 0, data.z);
-            
-            // Add pulsing light
-            const light = new THREE.PointLight(0xff0000, 3, 8);
-            mesh.add(light);
-            
-            scene.add(mesh);
-            mines[data.id] = {
-                mesh: mesh,
-                data: data,
-                pulseTime: 0
-            };
-        }
-        
-        function destroyMine(id) {
-            if (mines[id]) {
-                scene.remove(mines[id].mesh);
-                delete mines[id];
-            }
-        }
-        
         function createEnemy(data) {
             const geometry = new THREE.OctahedronGeometry(1);
             const material = new THREE.MeshPhongMaterial({ 
@@ -621,23 +576,6 @@
             }
         }
         
-        function placeMine() {
-            const now = Date.now();
-            if (now - lastMine < MINE_COOLDOWN) return;
-            if (minesPlaced >= MAX_MINES) return;
-            if (!isAlive || gameState !== 'playing') return;
-            
-            lastMine = now;
-            minesPlaced++;
-            
-            socket.emit('player-mine', {
-                x: player.x,
-                z: player.z
-            });
-            
-            updateUI();
-        }
-        
         function startLobbyCountdown(duration) {
             let remaining = duration;
             document.getElementById('lobbyStatus').textContent = 'Round starting soon!';
@@ -656,7 +594,6 @@
             gameState = 'playing';
             isAlive = true;
             health = 100;
-            minesPlaced = 0;
             currentBoundary = BOUNDARY;
             updateZoneVisual();
             
@@ -726,7 +663,6 @@
         function backToLobby() {
             gameState = 'lobby';
             isAlive = true;
-            minesPlaced = 0;
             currentBoundary = BOUNDARY;
             updateZoneVisual();
             
@@ -737,10 +673,8 @@
             
             Object.values(bullets).forEach(b => scene.remove(b.mesh));
             Object.values(enemies).forEach(e => scene.remove(e.mesh));
-            Object.values(mines).forEach(m => scene.remove(m.mesh));
             bullets = {};
             enemies = {};
-            mines = {};
         }
         
         function updateLobbyUI() {
@@ -766,7 +700,6 @@
         }
         
         function updateUI() {
-            document.getElementById('mines').textContent = MAX_MINES - minesPlaced;
             document.getElementById('health').textContent = Math.max(0, health);
             document.getElementById('zone').textContent = Math.round(currentBoundary);
             updatePlayerList();
@@ -777,11 +710,6 @@
             
             if (e.key === ' ' && gameState === 'playing' && isAlive) {
                 shoot();
-                e.preventDefault();
-            }
-            
-            if (e.key.toLowerCase() === 'm' && gameState === 'playing' && isAlive) {
-                placeMine();
                 e.preventDefault();
             }
         }
@@ -824,37 +752,6 @@
                     damage: 5
                 });
             }
-            
-            // Check mine collisions
-            Object.values(mines).forEach(mine => {
-                const dx = mine.mesh.position.x - player.x;
-                const dz = mine.mesh.position.z - player.z;
-                const dist = Math.sqrt(dx * dx + dz * dz);
-                
-                if (dist < 2) {
-                    socket.emit('mine-trigger', {
-                        mineId: mine.data.id,
-                        playerId: playerId
-                    });
-                }
-                
-                // Check other players
-                Object.keys(otherPlayers).forEach(otherId => {
-                    if (otherPlayers[otherId].alive !== false) {
-                        const other = otherPlayers[otherId].mesh;
-                        const dx = mine.mesh.position.x - other.position.x;
-                        const dz = mine.mesh.position.z - other.position.z;
-                        const dist = Math.sqrt(dx * dx + dz * dz);
-                        
-                        if (dist < 2) {
-                            socket.emit('mine-trigger', {
-                                mineId: mine.data.id,
-                                playerId: otherId
-                            });
-                        }
-                    }
-                });
-            });
             
             // Check bullet collisions with players (with cooldown)
             Object.values(bullets).forEach(bullet => {
@@ -990,13 +887,6 @@
             Object.values(enemies).forEach(enemy => {
                 enemy.mesh.rotation.x += 0.05;
                 enemy.mesh.rotation.y += 0.03;
-            });
-            
-            // Pulse mines
-            Object.values(mines).forEach(mine => {
-                mine.pulseTime += 0.1;
-                const scale = 1 + Math.sin(mine.pulseTime) * 0.2;
-                mine.mesh.scale.set(scale, scale, scale);
             });
         }
         
