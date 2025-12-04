@@ -166,13 +166,13 @@
     <script>
         // ⚠️ IMPORTANT: Update this URL after deploying your server to Render.com
         // It will look like: https://space-battle-server.onrender.com
-        const SERVER_URL = 'https://space-battle-server.onrender.com';
+        const SERVER_URL = 'https://YOUR-SERVER-NAME.onrender.com';
         
         // Game state
         let scene, camera, renderer;
         let player, playerMesh, directionIndicator;
-        let bullets = [];
         let enemies = {};
+        let mines = {}; // All mines in the game
         let otherPlayers = {};
         let stars = [];
         let health = 100;
@@ -343,19 +343,9 @@
                 startRound(data);
             });
             
-            socket.on('player-shot', (data) => {
-                // Show instant bullet hit effect
-                if (data.hit && data.targetId === playerId) {
-                    // Flash effect when hit
-                    const flash = document.getElementById('damageFlash');
-                    flash.style.opacity = '1';
-                    setTimeout(() => {
-                        flash.style.opacity = '0';
-                    }, 150);
-                }
-                
-                // Create visual bullet trail
-                createBulletTrail(data);
+            socket.on('mine-placed', (data) => {
+                console.log('Mine placed:', data);
+                createMine(data);
             });
             
             socket.on('zone-update', (data) => {
@@ -566,29 +556,34 @@
             }
         }
         
-        function createBulletTrail(data) {
-            // Create a simple line from shooter to target for visual feedback
-            const geometry = new THREE.BufferGeometry();
-            const points = [
-                new THREE.Vector3(data.fromX, 0.5, data.fromZ),
-                new THREE.Vector3(data.toX, 0.5, data.toZ)
-            ];
-            geometry.setFromPoints(points);
+        function createMine(data) {
+            console.log('Creating mine visual at', data.x, data.z);
             
-            const material = new THREE.LineBasicMaterial({ 
-                color: data.ownerId === playerId ? 0x00ffff : 0xff0000,
-                linewidth: 3
+            // Create a simple sphere
+            const geometry = new THREE.SphereGeometry(0.8, 16, 16);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: data.ownerId === playerId ? 0xff0000 : 0xff6600,
+                emissive: data.ownerId === playerId ? 0xff0000 : 0xff6600,
+                emissiveIntensity: 0.6
             });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(data.x, 0.8, data.z); // Sits on ground
             
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
+            // Add a glow light
+            const light = new THREE.PointLight(data.ownerId === playerId ? 0xff0000 : 0xff6600, 2, 5);
+            mesh.add(light);
             
-            // Remove after 100ms
-            setTimeout(() => {
-                scene.remove(line);
-                geometry.dispose();
-                material.dispose();
-            }, 100);
+            scene.add(mesh);
+            
+            mines[data.id] = {
+                mesh: mesh,
+                x: data.x,
+                z: data.z,
+                ownerId: data.ownerId,
+                id: data.id
+            };
+            
+            console.log('Mine created successfully. Total mines:', Object.keys(mines).length);
         }
         
         function createEnemy(data) {
@@ -718,8 +713,11 @@
             document.getElementById('countdown').textContent = '';
             document.getElementById('lobbyStatus').textContent = 'Waiting for players...';
             
+            // Clear all game objects
             Object.values(enemies).forEach(e => scene.remove(e.mesh));
+            Object.values(mines).forEach(m => scene.remove(m.mesh));
             enemies = {};
+            mines = {};
         }
         
         function updateLobbyUI() {
@@ -770,18 +768,12 @@
             
             lastShot = now;
             
-            // Calculate where we're aiming
-            const range = 30;
-            const targetX = player.x + Math.sin(player.rotation) * range;
-            const targetZ = player.z + Math.cos(player.rotation) * range;
+            console.log('Placing mine at player position:', player.x, player.z);
             
-            // Send shot to server - server will calculate if we hit anyone
-            socket.emit('player-shoot', {
-                fromX: player.x,
-                fromZ: player.z,
-                toX: targetX,
-                toZ: targetZ,
-                rotation: player.rotation
+            // Tell server to place mine at current position
+            socket.emit('place-mine', {
+                x: player.x,
+                z: player.z
             });
         }
         
@@ -801,7 +793,46 @@
                 });
             }
             
-            // Check enemy collisions with player
+            // Check collision with mines
+            Object.values(mines).forEach(mine => {
+                const dx = mine.x - player.x;
+                const dz = mine.z - player.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                
+                // If touching mine, take damage
+                if (dist < 1.5 && now - lastDamageTime > 500) {
+                    lastDamageTime = now;
+                    console.log('Player touched mine! Taking damage');
+                    socket.emit('player-hit', {
+                        targetId: playerId,
+                        shooterId: mine.ownerId,
+                        damage: 15
+                    });
+                }
+            });
+            
+            // Check collision with other players
+            Object.values(otherPlayers).forEach(other => {
+                if (!other.alive || other.alive === false) return;
+                
+                const dx = other.mesh.position.x - player.x;
+                const dz = other.mesh.position.z - player.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                
+                // Player collision - push away from each other
+                if (dist < 2) {
+                    const pushDistance = 0.2;
+                    const angle = Math.atan2(dz, dx);
+                    player.x -= Math.cos(angle) * pushDistance;
+                    player.z -= Math.sin(angle) * pushDistance;
+                    
+                    // Keep in boundaries
+                    player.x = Math.max(-BOUNDARY, Math.min(BOUNDARY, player.x));
+                    player.z = Math.max(-BOUNDARY, Math.min(BOUNDARY, player.z));
+                }
+            });
+            
+            // Check enemy collisions
             Object.values(enemies).forEach(enemy => {
                 const dx = enemy.mesh.position.x - player.x;
                 const dz = enemy.mesh.position.z - player.z;
