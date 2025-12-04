@@ -147,6 +147,7 @@
     <div id="damageFlash"></div>
     
     <div id="ui">
+        <div>Mines: <span id="mines">5</span> / 5</div>
         <div>Health: <span id="health">100</span></div>
         <div>Players Alive: <span id="alive">0</span></div>
         <div>Zone: <span id="zone">50</span>m</div>
@@ -166,13 +167,15 @@
     <script>
         // ⚠️ IMPORTANT: Update this URL after deploying your server to Render.com
         // It will look like: https://space-battle-server.onrender.com
-        const SERVER_URL = 'https://space-battle-server.onrender.com';
+        const SERVER_URL = 'https://YOUR-SERVER-NAME.onrender.com';
         
         // Game state
         let scene, camera, renderer;
         let player, playerMesh, directionIndicator;
         let bullets = {};
         let enemies = {};
+        let myMines = []; // Track my own mines (just for visual)
+        let allMines = {}; // Track all players' mines
         let otherPlayers = {};
         let stars = [];
         let health = 100;
@@ -196,6 +199,7 @@
         // Game boundaries
         const BOUNDARY = 50;
         const SHOOT_COOLDOWN = 800; // Longer cooldown for shooting
+        const MAX_MINES_PER_PLAYER = 5; // Max 5 mines per player
 
         // Initialize
         function init() {
@@ -334,6 +338,14 @@
             
             socket.on('bullet-created', (data) => {
                 createBullet(data);
+            });
+            
+            socket.on('mine-placed', (data) => {
+                createMineVisual(data);
+            });
+            
+            socket.on('mine-removed', (data) => {
+                removeMine(data.id);
             });
             
             socket.on('zone-update', (data) => {
@@ -563,6 +575,35 @@
             };
         }
         
+        function createMineVisual(data) {
+            // Simple flat circle on the ground - no calculation, instant
+            const geometry = new THREE.CircleGeometry(1, 16);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: data.ownerId === playerId ? 0xff0000 : 0xff6600,
+                transparent: true,
+                opacity: 0.7,
+                side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.rotation.x = -Math.PI / 2; // Lay flat on ground
+            mesh.position.set(data.x, 0.1, data.z); // Slightly above ground
+            
+            scene.add(mesh);
+            allMines[data.id] = {
+                mesh: mesh,
+                x: data.x,
+                z: data.z,
+                ownerId: data.ownerId
+            };
+        }
+        
+        function removeMine(mineId) {
+            if (allMines[mineId]) {
+                scene.remove(allMines[mineId].mesh);
+                delete allMines[mineId];
+            }
+        }
+        
         function createEnemy(data) {
             const geometry = new THREE.OctahedronGeometry(1);
             const material = new THREE.MeshPhongMaterial({ 
@@ -614,6 +655,7 @@
             isAlive = true;
             health = 100;
             currentBoundary = BOUNDARY;
+            myMines = [];
             updateZoneVisual();
             
             document.getElementById('lobbyScreen').classList.add('hidden');
@@ -683,6 +725,7 @@
             gameState = 'lobby';
             isAlive = true;
             currentBoundary = BOUNDARY;
+            myMines = [];
             updateZoneVisual();
             
             document.getElementById('roundEndScreen').classList.add('hidden');
@@ -692,8 +735,10 @@
             
             Object.values(bullets).forEach(b => scene.remove(b.mesh));
             Object.values(enemies).forEach(e => scene.remove(e.mesh));
+            Object.values(allMines).forEach(m => scene.remove(m.mesh));
             bullets = {};
             enemies = {};
+            allMines = {};
         }
         
         function updateLobbyUI() {
@@ -719,6 +764,7 @@
         }
         
         function updateUI() {
+            document.getElementById('mines').textContent = MAX_MINES_PER_PLAYER - myMines.length;
             document.getElementById('health').textContent = Math.max(0, health);
             document.getElementById('zone').textContent = Math.round(currentBoundary);
             updatePlayerList();
@@ -740,20 +786,25 @@
         function shoot() {
             const now = Date.now();
             if (now - lastShot < SHOOT_COOLDOWN) return;
+            if (!isAlive || gameState !== 'playing') return;
             
             lastShot = now;
             
-            const speed = 0.8;
-            const angle = player.rotation;
-            const vx = Math.sin(angle) * speed;
-            const vz = Math.cos(angle) * speed;
+            // Place mine at current position - instant, no calculation
+            myMines.push({ x: player.x, z: player.z });
             
-            socket.emit('player-shoot', {
+            // Remove oldest mine if more than 5
+            if (myMines.length > MAX_MINES_PER_PLAYER) {
+                myMines.shift(); // Remove first (oldest) mine
+            }
+            
+            // Tell server to place mine - server handles the visuals for all
+            socket.emit('place-mine', {
                 x: player.x,
-                z: player.z,
-                vx: vx,
-                vz: vz
+                z: player.z
             });
+            
+            updateUI();
         }
         
         function checkCollisions() {
@@ -771,63 +822,6 @@
                     damage: 5
                 });
             }
-            
-            // Check bullet collisions with players (with cooldown)
-            Object.values(bullets).forEach(bullet => {
-                if (bullet.data.ownerId !== playerId) {
-                    const dx = bullet.mesh.position.x - player.x;
-                    const dz = bullet.mesh.position.z - player.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    
-                    // Only take damage if cooldown has passed
-                    if (dist < 1.5 && now - lastDamageTime > DAMAGE_COOLDOWN) {
-                        lastDamageTime = now;
-                        socket.emit('player-hit', {
-                            targetId: playerId,
-                            shooterId: bullet.data.ownerId,
-                            damage: 20
-                        });
-                    }
-                }
-                
-                // Check other players (less frequent to reduce lag)
-                if (Math.random() < 0.3) { // Only check 30% of frames
-                    Object.keys(otherPlayers).forEach(otherId => {
-                        if (bullet.data.ownerId !== otherId && otherPlayers[otherId].alive !== false) {
-                            const other = otherPlayers[otherId].mesh;
-                            const dx = bullet.mesh.position.x - other.position.x;
-                            const dz = bullet.mesh.position.z - other.position.z;
-                            const dist = Math.sqrt(dx * dx + dz * dz);
-                            
-                            if (dist < 1.5) {
-                                socket.emit('player-hit', {
-                                    targetId: otherId,
-                                    shooterId: bullet.data.ownerId,
-                                    damage: 20
-                                });
-                            }
-                        }
-                    });
-                }
-                
-                // Check enemies (less frequent to reduce lag)
-                if (Math.random() < 0.3) { // Only check 30% of frames
-                    Object.keys(enemies).forEach(enemyId => {
-                        const enemy = enemies[enemyId].mesh;
-                        const dx = bullet.mesh.position.x - enemy.position.x;
-                        const dz = bullet.mesh.position.z - enemy.position.z;
-                        const dist = Math.sqrt(dx * dx + dz * dz);
-                        
-                        if (dist < 1.5) {
-                            socket.emit('enemy-hit', {
-                                enemyId: enemyId,
-                                shooterId: bullet.data.ownerId,
-                                damage: 10
-                            });
-                        }
-                    });
-                }
-            });
             
             // Check enemy collisions with player (with longer cooldown)
             Object.values(enemies).forEach(enemy => {
